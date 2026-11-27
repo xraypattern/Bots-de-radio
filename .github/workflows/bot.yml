@@ -2,7 +2,7 @@ name: Bot Radio 24-7
 
 on:
   schedule:
-    - cron: '7,22,37,52 * * * *'
+    - cron: '*/10 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   capturar-musica:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v5
@@ -25,3 +25,4 @@ jobs:
           git config user.email "bot@://github.com"
           git add .
           git diff --staged --quiet || (git commit -m "Actualizacion automatica" && git push)
+
