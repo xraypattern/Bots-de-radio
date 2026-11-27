@@ -19,7 +19,7 @@ if (-not (Test-Path $bloqueadasArchivo)) {
 $bloqueadas = @(Get-Content $bloqueadasArchivo -Encoding UTF8)
 
 # Ajustar a hora de México (UTC-6)
-$tzMexico = [System.TimeZoneInfo]::FindSystemTimeZoneById("Central Standard Time (Mexico)")
+try { $tzMexico = [System.TimeZoneInfo]::FindSystemTimeZoneById("America/Mexico_City") } catch { $tzMexico = [System.TimeZoneInfo]::FindSystemTimeZoneById("Central Standard Time (Mexico)") }
 $ahora = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $tzMexico)
 
 $fecha = $ahora.ToString("yyyy-MM-dd")
