@@ -1,0 +1,27 @@
+name: Bot Radio Reloj 2
+
+on:
+  schedule:
+    - cron: '5,15,25,35,45,55 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  capturar-musica:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v5
+
+      - name: Ejecutar bot de radio
+        shell: pwsh
+        run: ./capturar.ps1
+
+      - name: Guardar cambios en GitHub
+        run: |
+          git config user.name "Bot Radio"
+          git config user.email "bot@://github.com"
+          git add .
+          git diff --staged --quiet || (git commit -m "Actualizacion Reloj 2" && git pull --rebase && git push)
