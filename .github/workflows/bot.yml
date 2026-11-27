@@ -1,0 +1,27 @@
+name: Bot Radio 24-7
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  capturar-musica:
+    runs-on: windows-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Ejecutar bot de radio
+        shell: pwsh
+        run: ./capturar.ps1
+
+      - name: Guardar cambios en GitHub
+        run: |
+          git config user.name "Bot Radio"
+          git config user.email "bot@://github.com"
+          git add .
+          git diff --staged --quiet || (git commit -m "Actualizacion automatica" && git push)
