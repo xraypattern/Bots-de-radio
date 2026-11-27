@@ -1,8 +1,8 @@
-name: Bot Radio 24-7
+name: Bot Radio Reloj 1
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '0,10,20,30,40,50 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -24,5 +24,4 @@ jobs:
           git config user.name "Bot Radio"
           git config user.email "bot@://github.com"
           git add .
-          git diff --staged --quiet || (git commit -m "Actualizacion automatica" && git push)
-
+          git diff --staged --quiet || (git commit -m "Actualizacion Reloj 1" && git pull --rebase && git push)
