@@ -26,4 +26,5 @@ jobs:
           git config user.name "Bot Radio"
           git config user.email "bot@://github.com"
           git add .
-          git diff --staged --quiet || (git commit -m "Actualizacion Reloj 2" && git pull --rebase && git push)
+          git diff --staged --quiet || (git commit -m "Actualizacion automatica" && (git push || echo "Ya actualizado por otro reloj"))
+
