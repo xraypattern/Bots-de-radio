@@ -1,5 +1,5 @@
 # =========================================================================
-# LISTA DE ESTACIONES 
+# ESTACION FORMULA MELODICA 
 # =========================================================================
 $estaciones = @{
     "Formula_Melodica" = "/formula-guadalajara/"
