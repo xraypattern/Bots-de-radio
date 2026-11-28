@@ -51,11 +51,8 @@ foreach ($nombreEstacion in $estaciones.Keys) {
     $carpetaBitacora = "$baseCarpeta/02_Bitacoras_Con_Hora"
     $carpetaMaestros = "$baseCarpeta/04_Estadisticas_y_Maestros"
 
-    # Archivo del bloque actual (para TuneMyMusic -> Spotify -> Audacity)
-    $archivoBloque = "$carpetaSpotify/${nombreEstacion}_${fecha}_${bloqueNombre}.txt"
-    # Archivo diario completo (respaldo y control de duplicados del día)
-    $archivoDiaCompleto = "$carpetaSpotify/${nombreEstacion}_${fecha}_0_Completo.txt"
-    
+    $archivoLimpio = "$carpetaSpotify/${nombreEstacion}_${fecha}_0_Completo.txt"
+
     $archivoHora = "$carpetaBitacora/Bitacora_$fecha.txt"
     $archivoMaestro = "$carpetaMaestros/Lista_Maestra_Historica.txt"
     $archivoSemanal = "$carpetaMaestros/Semana_$anioSemana.txt"
@@ -64,7 +61,7 @@ foreach ($nombreEstacion in $estaciones.Keys) {
     foreach ($ruta in @($carpetaSpotify, $carpetaBitacora, $carpetaMaestros)) {
         if (-not (Test-Path $ruta)) { New-Item -Path $ruta -ItemType Directory -Force | Out-Null }
     }
-    foreach ($arch in @($archivoBloque, $archivoDiaCompleto, $archivoHora, $archivoMaestro, $archivoSemanal)) {
+    foreach ($arch in @($archivoLimpio, $archivoHora, $archivoMaestro, $archivoSemanal)) {
         if (-not (Test-Path $arch)) { New-Item -Path $arch -ItemType File -Force | Out-Null }
     }
 
@@ -75,7 +72,7 @@ foreach ($nombreEstacion in $estaciones.Keys) {
         continue
     }
 
-    $existentesDia = @(Get-Content $archivoDiaCompleto -Encoding UTF8)
+    $existentesDia = @(Get-Content $archivoLimpio -Encoding UTF8)
     $existentesMaestro = @(Get-Content $archivoMaestro -Encoding UTF8)
     $existentesSemana = @(Get-Content $archivoSemanal -Encoding UTF8)
 
@@ -98,8 +95,8 @@ foreach ($nombreEstacion in $estaciones.Keys) {
     $huboTraslape = $false
     $cancionesNuevasEsteTurno = @()
 
-    foreach ($m in $coincidencias) {
-        $cancionCompleta = $m.Value -replace '^alt="', '' -replace '"$', ''
+    for ($i = $coincidencias.Count - 1; $i -ge 0; $i--) {
+        $cancionCompleta = $coincidencias[$i].Value -replace '^alt="', '' -replace '"$', ''
         $cancionCompleta = [System.Net.WebUtility]::HtmlDecode($cancionCompleta).Trim()
         
         if ($cancionCompleta -notmatch "Digital Remaster|InstantAudio|Emisoras" -and $bloqueadas -notcontains $cancionCompleta) {
@@ -115,14 +112,37 @@ foreach ($nombreEstacion in $estaciones.Keys) {
         Add-Content -Path $archivoHora -Value "--- ⚠️ POSIBLE SALTO DE CANCIONES (0 en comun con la lectura anterior) ---" -Encoding UTF8
     }
 
-    foreach ($cancionCompleta in $cancionesNuevasEsteTurno) {
+    $minTotal = ($ahora.Hour * 60) + $ahora.Minute
+    if ($minTotal -ge 375 -and $minTotal -lt 735) {       # 06:15 a 12:14
+        $bloqueActual = "1_Manana"
+    } elseif ($minTotal -ge 735 -and $minTotal -lt 1095) { # 12:15 a 18:14
+        $bloqueActual = "2_Tarde"
+    } elseif ($minTotal -ge 1095 -or $minTotal -lt 15) {   # 18:15 a 00:14
+        $bloqueActual = "3_Noche"
+    } else {                                               # 00:15 a 06:14
+        $bloqueActual = "4_Madrugada"
+    }
+
+
+        foreach ($cancionCompleta in $cancionesNuevasEsteTurno) {
+        if ($cancionCompleta -match "Himno Nacional") {
+            if ($ahora.Hour -ge 5 -and $ahora.Hour -le 7) { $bloqueActual = "1_Manana" }
+            elseif ($ahora.Hour -ge 23 -or $ahora.Hour -le 1) { $bloqueActual = "4_Madrugada" }
+            Add-Content -Path $archivoHora -Value "[$hora] 🔔 CORTE: $cancionCompleta -> $bloqueActual" -Encoding UTF8
+            Add-Content -Path $archivoLimpio -Value $cancionCompleta -Encoding UTF8
+            $existentesDia += $cancionCompleta
+            continue
+        }
+
+       $archivoBloque = "$carpetaSpotify/${nombreEstacion}_${fecha}_${bloqueActual}.txt"
+        if (-not (Test-Path $archivoBloque)) { New-Item -Path $archivoBloque -ItemType File -Force | Out-Null }
+        Add-Content -Path $archivoBloque -Value $cancionCompleta -Encoding UTF8
+
         $partes = $cancionCompleta -split '\s-\s', 2
         $artista = ($partes | Select-Object -First 1).Trim()
         $titulo = if ($partes.Count -gt 1) { ($partes | Select-Object -Last 1).Trim() } else { "" }
 
-        # Se guarda tanto en el bloque de 6 horas como en el respaldo completo del día
-        Add-Content -Path $archivoBloque -Value $cancionCompleta -Encoding UTF8
-        Add-Content -Path $archivoDiaCompleto -Value $cancionCompleta -Encoding UTF8
+        Add-Content -Path $archivoLimpio -Value $cancionCompleta -Encoding UTF8
         Add-Content -Path $archivoHora -Value "[$hora] $cancionCompleta" -Encoding UTF8
         $existentesDia += $cancionCompleta
 
