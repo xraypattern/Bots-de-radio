@@ -1,4 +1,3 @@
-
 # =========================================================================
 # LISTA DE ESTACIONES (Agrega o quita el símbolo # para activar más radios)
 # =========================================================================
@@ -89,43 +88,55 @@ foreach ($nombreEstacion in $estaciones.Keys) {
         }
     }
 
+    $huboTraslape = $false
+    $cancionesNuevasEsteTurno = @()
+
     foreach ($m in $coincidencias) {
         $cancionCompleta = $m.Value -replace '^alt="', '' -replace '"$', ''
         $cancionCompleta = [System.Net.WebUtility]::HtmlDecode($cancionCompleta).Trim()
         
         if ($cancionCompleta -notmatch "Digital Remaster|InstantAudio|Emisoras" -and $bloqueadas -notcontains $cancionCompleta) {
-            
-            $partes = $cancionCompleta -split '\s-\s', 2
-            $artista = ($partes | Select-Object -First 1).Trim()
-            $titulo = if ($partes.Count -gt 1) { ($partes | Select-Object -Last 1).Trim() } else { "" }
-
-            if ($existentesDia -notcontains $cancionCompleta) {
-                Add-Content -Path $archivoLimpio -Value $cancionCompleta -Encoding UTF8
-                Add-Content -Path $archivoHora -Value "[$hora] $cancionCompleta" -Encoding UTF8
-                $existentesDia += $cancionCompleta
-
-                if ($ranking.ContainsKey($cancionCompleta)) {
-                    $ranking[$cancionCompleta].Reproducciones += 1
-                    $ranking[$cancionCompleta].Ultima_Vez = "$fecha $hora"
-                } else {
-                    $ranking[$cancionCompleta] = [PSCustomObject]@{
-                        Artista        = $artista
-                        Cancion        = $titulo
-                        Reproducciones = 1
-                        Ultima_Vez     = "$fecha $hora"
-                    }
-                }
+            if ($existentesDia -contains $cancionCompleta) {
+                $huboTraslape = $true
+            } else {
+                $cancionesNuevasEsteTurno += $cancionCompleta
             }
+        }
+    }
 
-            if ($existentesMaestro -notcontains $cancionCompleta) {
-                Add-Content -Path $archivoMaestro -Value $cancionCompleta -Encoding UTF8
-                $existentesMaestro += $cancionCompleta
-            }
+    if ($existentesDia.Count -gt 0 -and -not $huboTraslape -and $cancionesNuevasEsteTurno.Count -gt 0) {
+        Add-Content -Path $archivoHora -Value "--- ⚠️ POSIBLE SALTO DE CANCIONES (0 en comun con la lectura anterior) ---" -Encoding UTF8
+    }
 
-            if ($existentesSemana -notcontains $cancionCompleta) {
-                Add-Content -Path $archivoSemanal -Value $cancionCompleta -Encoding UTF8
-                $existentesSemana += $cancionCompleta
+    foreach ($cancionCompleta in $cancionesNuevasEsteTurno) {
+        $partes = $cancionCompleta -split '\s-\s', 2
+        $artista = ($partes | Select-Object -First 1).Trim()
+        $titulo = if ($partes.Count -gt 1) { ($partes | Select-Object -Last 1).Trim() } else { "" }
+
+        Add-Content -Path $archivoLimpio -Value $cancionCompleta -Encoding UTF8
+        Add-Content -Path $archivoHora -Value "[$hora] $cancionCompleta" -Encoding UTF8
+        $existentesDia += $cancionCompleta
+
+        if ($ranking.ContainsKey($cancionCompleta)) {
+            $ranking[$cancionCompleta].Reproducciones += 1
+            $ranking[$cancionCompleta].Ultima_Vez = "$fecha $hora"
+        } else {
+            $ranking[$cancionCompleta] = [PSCustomObject]@{
+                Artista        = $artista
+                Cancion        = $titulo
+                Reproducciones = 1
+                Ultima_Vez     = "$fecha $hora"
             }
+        }
+
+        if ($existentesMaestro -notcontains $cancionCompleta) {
+            Add-Content -Path $archivoMaestro -Value $cancionCompleta -Encoding UTF8
+            $existentesMaestro += $cancionCompleta
+        }
+
+        if ($existentesSemana -notcontains $cancionCompleta) {
+            Add-Content -Path $archivoSemanal -Value $cancionCompleta -Encoding UTF8
+            $existentesSemana += $cancionCompleta
         }
     }
 
@@ -134,3 +145,4 @@ foreach ($nombreEstacion in $estaciones.Keys) {
         $ordenadas | Export-Csv -Path $archivoRanking -NoTypeInformation -Encoding UTF8
     }
 }
+
