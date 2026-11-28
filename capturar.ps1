@@ -99,13 +99,16 @@ foreach ($nombreEstacion in $estaciones.Keys) {
         $cancionCompleta = $coincidencias[$i].Value -replace '^alt="', '' -replace '"$', ''
         $cancionCompleta = [System.Net.WebUtility]::HtmlDecode($cancionCompleta).Trim()
         
-        if ($cancionCompleta -notmatch "Digital Remaster|InstantAudio|Emisoras" -and $bloqueadas -notcontains $cancionCompleta) {
+            if ($bloqueadas -contains $cancionCompleta) {
+              Add-Content -Path $archivoHora -Value "[$hora] 🚫 CORTINILLA DETECTADA: $cancionCompleta" -Encoding UTF8
+        } elseif ($cancionCompleta -notmatch "Digital Remaster|InstantAudio|Emisoras") {
             if ($existentesDia -contains $cancionCompleta) {
                 $huboTraslape = $true
             } else {
                 $cancionesNuevasEsteTurno += $cancionCompleta
             }
         }
+
     }
 
     if ($existentesDia.Count -gt 0 -and -not $huboTraslape -and $cancionesNuevasEsteTurno.Count -gt 0) {
