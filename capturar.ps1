@@ -1,9 +1,8 @@
 # =========================================================================
-# ESTACION FORMULA MELODICA 
+# ESTACIÓN CONFIGURADA (Exclusivo para Fórmula Melódica 97.9 FM)
 # =========================================================================
 $estaciones = @{
     "Formula_Melodica" = "/formula-guadalajara/"
-
 }
 
 $dominio = "https://emisoras.com.mx"
@@ -21,19 +20,8 @@ $ahora = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(),
 
 $diaRadio = $ahora.AddHours(-6)
 $fecha = $diaRadio.ToString("yyyy-MM-dd")
+$fechaAyer = $diaRadio.AddDays(-1).ToString("yyyy-MM-dd")
 $hora = $ahora.ToString("HH:mm")
-$horaNum = $ahora.Hour
-
-# Determinar el bloque horario de 6 horas
-if ($horaNum -ge 6 -and $horaNum -lt 12) {
-    $bloqueNombre = "1_Manana"
-} elseif ($horaNum -ge 12 -and $horaNum -lt 18) {
-    $bloqueNombre = "2_Tarde"
-} elseif ($horaNum -ge 18 -and $horaNum -le 23) {
-    $bloqueNombre = "3_Noche"
-} else {
-    $bloqueNombre = "4_Madrugada"
-}
 
 $numSemana = (Get-Culture).Calendar.GetWeekOfYear($diaRadio, [System.Globalization.CalendarWeekRule]::FirstFourDayWeek, [DayOfWeek]::Monday)
 $anioSemana = $diaRadio.ToString("yyyy") + "-W" + $numSemana.ToString("00")
@@ -50,7 +38,7 @@ foreach ($nombreEstacion in $estaciones.Keys) {
     $carpetaMaestros = "$baseCarpeta/04_Estadisticas_y_Maestros"
 
     $archivoLimpio = "$carpetaSpotify/${nombreEstacion}_${fecha}_0_Completo.txt"
-
+    $archivoAyer = "$carpetaSpotify/${nombreEstacion}_${fechaAyer}_0_Completo.txt"
     $archivoHora = "$carpetaBitacora/Bitacora_$fecha.txt"
     $archivoMaestro = "$carpetaMaestros/Lista_Maestra_Historica.txt"
     $archivoSemanal = "$carpetaMaestros/Semana_$anioSemana.txt"
@@ -70,7 +58,11 @@ foreach ($nombreEstacion in $estaciones.Keys) {
         continue
     }
 
-    $existentesDia = @(Get-Content $archivoLimpio -Encoding UTF8)
+    # Memoria combinada: hoy + cierre de ayer (evita duplicados en el corte de las 06:02 AM)
+    $existentesHoy = @(Get-Content $archivoLimpio -Encoding UTF8)
+    $existentesAyer = if (Test-Path $archivoAyer) { @(Get-Content $archivoAyer -Encoding UTF8 | Select-Object -Last 15) } else { @() }
+    $memoriaTraslape = $existentesHoy + $existentesAyer
+
     $existentesMaestro = @(Get-Content $archivoMaestro -Encoding UTF8)
     $existentesSemana = @(Get-Content $archivoSemanal -Encoding UTF8)
 
@@ -97,19 +89,16 @@ foreach ($nombreEstacion in $estaciones.Keys) {
         $cancionCompleta = $coincidencias[$i].Value -replace '^alt="', '' -replace '"$', ''
         $cancionCompleta = [System.Net.WebUtility]::HtmlDecode($cancionCompleta).Trim()
         
-            if ($bloqueadas -contains $cancionCompleta) {
-              Add-Content -Path $archivoHora -Value "[$hora] 🚫 CORTINILLA DETECTADA: $cancionCompleta" -Encoding UTF8
-        } elseif ($cancionCompleta -notmatch "Digital Remaster|InstantAudio|Emisoras") {
-            if ($existentesDia -contains $cancionCompleta) {
+        if ($cancionCompleta -notmatch "Digital Remaster|InstantAudio|Emisoras" -and $bloqueadas -notcontains $cancionCompleta) {
+            if ($memoriaTraslape -contains $cancionCompleta) {
                 $huboTraslape = $true
             } else {
                 $cancionesNuevasEsteTurno += $cancionCompleta
             }
         }
-
     }
 
-    if ($existentesDia.Count -gt 0 -and -not $huboTraslape -and $cancionesNuevasEsteTurno.Count -gt 0) {
+    if ($memoriaTraslape.Count -gt 0 -and -not $huboTraslape -and $cancionesNuevasEsteTurno.Count -gt 0) {
         Add-Content -Path $archivoHora -Value "--- ⚠️ POSIBLE SALTO DE CANCIONES (0 en comun con la lectura anterior) ---" -Encoding UTF8
     }
 
@@ -124,18 +113,8 @@ foreach ($nombreEstacion in $estaciones.Keys) {
         $bloqueActual = "4_Madrugada"
     }
 
-
-        foreach ($cancionCompleta in $cancionesNuevasEsteTurno) {
-        if ($cancionCompleta -match "Himno Nacional") {
-            if ($ahora.Hour -ge 5 -and $ahora.Hour -le 7) { $bloqueActual = "1_Manana" }
-            elseif ($ahora.Hour -ge 23 -or $ahora.Hour -le 1) { $bloqueActual = "4_Madrugada" }
-            Add-Content -Path $archivoHora -Value "[$hora] 🔔 CORTE: $cancionCompleta -> $bloqueActual" -Encoding UTF8
-            Add-Content -Path $archivoLimpio -Value $cancionCompleta -Encoding UTF8
-            $existentesDia += $cancionCompleta
-            continue
-        }
-
-       $archivoBloque = "$carpetaSpotify/${nombreEstacion}_${fecha}_${bloqueActual}.txt"
+    foreach ($cancionCompleta in $cancionesNuevasEsteTurno) {
+        $archivoBloque = "$carpetaSpotify/${nombreEstacion}_${fecha}_${bloqueActual}.txt"
         if (-not (Test-Path $archivoBloque)) { New-Item -Path $archivoBloque -ItemType File -Force | Out-Null }
         Add-Content -Path $archivoBloque -Value $cancionCompleta -Encoding UTF8
 
@@ -145,7 +124,7 @@ foreach ($nombreEstacion in $estaciones.Keys) {
 
         Add-Content -Path $archivoLimpio -Value $cancionCompleta -Encoding UTF8
         Add-Content -Path $archivoHora -Value "[$hora] $cancionCompleta" -Encoding UTF8
-        $existentesDia += $cancionCompleta
+        $memoriaTraslape += $cancionCompleta
 
         if ($ranking.ContainsKey($cancionCompleta)) {
             $ranking[$cancionCompleta].Reproducciones += 1
