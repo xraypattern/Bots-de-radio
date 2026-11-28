@@ -32,10 +32,11 @@ $bloqueadas = @(Get-Content $bloqueadasArchivo -Encoding UTF8)
 try { $tzMexico = [System.TimeZoneInfo]::FindSystemTimeZoneById("America/Mexico_City") } catch { $tzMexico = [System.TimeZoneInfo]::FindSystemTimeZoneById("Central Standard Time (Mexico)") }
 $ahora = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $tzMexico)
 
-$fecha = $ahora.ToString("yyyy-MM-dd")
+$diaRadio = $ahora.AddHours(-6)
+$fecha = $diaRadio.ToString("yyyy-MM-dd")
 $hora = $ahora.ToString("HH:mm")
-$numSemana = (Get-Culture).Calendar.GetWeekOfYear($ahora, [System.Globalization.CalendarWeekRule]::FirstFourDayWeek, [DayOfWeek]::Monday)
-$anioSemana = $ahora.ToString("yyyy") + "-W" + $numSemana.ToString("00")
+$numSemana = (Get-Culture).Calendar.GetWeekOfYear($diaRadio, [System.Globalization.CalendarWeekRule]::FirstFourDayWeek, [DayOfWeek]::Monday)
+$anioSemana = $diaRadio.ToString("yyyy") + "-W" + $numSemana.ToString("00")
 $headers = @{ "Cache-Control" = "no-cache"; "Pragma" = "no-cache" }
 
 foreach ($nombreEstacion in $estaciones.Keys) {
