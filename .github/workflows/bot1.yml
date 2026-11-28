@@ -1,8 +1,9 @@
 name: Bot Radio Continuo
 
 on:
-   repository_dispatch:
-   types: [despertar-bot]
+  repository_dispatch:
+    types:
+      - despertar-bot
   workflow_dispatch:
 
 concurrency:
