@@ -15,7 +15,7 @@ permissions:
 jobs:
   capturar-musica:
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 58
 
     steps:
       - name: Descargar repositorio
@@ -27,8 +27,11 @@ jobs:
           git config user.name "Bot Radio"
           git config user.email "bot@://github.com"
 
-          for ($ronda = 1; $ronda -le 4; $ronda++) {
-              Write-Host "=== Ronda $ronda de 4 ($(Get-Date -Format 'HH:mm:ss')) ==="
+          $ronda = 1
+          $continuar = $true
+
+          while ($continuar) {
+              Write-Host "=== Ronda $ronda ($(Get-Date -Format 'HH:mm:ss')) ==="
               
               git checkout main
               git pull origin main
@@ -44,20 +47,22 @@ jobs:
                   Write-Host "Sin canciones nuevas en esta ronda."
               }
 
-              if ($ronda -lt 4) {
-                  # Revisar si en los próximos 15 min se cruza una hora de corte (06, 12, 18, 00)
-                  $ahoraMx = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date).ToUniversalTime(), "America/Mexico_City")
-                  $proximaHora = $ahoraMx.AddHours(1).Date.AddHours($ahoraMx.AddHours(1).Hour)
-                  $segundosParaCorte = [int]($proximaHora - $ahoraMx).TotalSeconds
+              # Revisar si en los próximos 15 min se cruza una hora de corte (06, 12, 18, 00)
+              $ahoraMx = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date).ToUniversalTime(), "America/Mexico_City")
+              $proximaHora = $ahoraMx.AddHours(1).Date.AddHours($ahoraMx.AddHours(1).Hour)
+              $segundosParaCorte = [int]($proximaHora - $ahoraMx).TotalSeconds
 
-                  if (($proximaHora.Hour -in @(0, 6, 12, 18)) -and ($segundosParaCorte -gt 0) -and ($segundosParaCorte -lt 900)) {
-                      # Duerme hasta el minuto :02 de la hora de corte (ej. 06:02, 12:02, 18:02, 00:02)
-                      $esperaExacta = $segundosParaCorte + 120
-                      Write-Host "Frontera detectada ($($proximaHora.ToString('HH:mm'))). Captura extraordinaria en $([math]::Round($esperaExacta/60, 1)) min..."
-                      Start-Sleep -Seconds $esperaExacta
-                  } else {
-                      Write-Host "Esperando 15 minutos exactos..."
-                      Start-Sleep -Seconds 900
-                  }
+              if (($proximaHora.Hour -in @(0, 6, 12, 18)) -and ($segundosParaCorte -gt 0) -and ($segundosParaCorte -lt 900)) {
+                  # Duerme hasta el minuto :02 de la hora de corte (ej. 06:02, 12:02, 18:02, 00:02)
+                  $esperaExacta = $segundosParaCorte + 120
+                  Write-Host "Frontera detectada ($($proximaHora.ToString('HH:mm'))). Captura extraordinaria en $([math]::Round($esperaExacta/60, 1)) min..."
+                  Start-Sleep -Seconds $esperaExacta
+                  $ronda++
+              } elseif ($ronda -lt 4) {
+                  Write-Host "Esperando 15 minutos exactos..."
+                  Start-Sleep -Seconds 900
+                  $ronda++
+              } else {
+                  $continuar = $false
               }
           }
