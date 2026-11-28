@@ -2,7 +2,6 @@ name: Bot Radio Continuo
 
 on:
   schedule:
-    # Arranca una vez cada hora
     - cron: '0 * * * *'
   workflow_dispatch:
 
@@ -30,14 +29,18 @@ jobs:
 
           for ($ronda = 1; $ronda -le 4; $ronda++) {
               Write-Host "=== Ronda $ronda de 4 ($(Get-Date -Format 'HH:mm:ss')) ==="
+              
+              # Descarga cualquier cambio manual hecho en GitHub ANTES de tocar archivos
+              git checkout main
+              git pull origin main
+
               ./capturar.ps1
               
               git add .
               git diff --staged --quiet
               if ($LASTEXITCODE -ne 0) {
                   git commit -m "Actualizacion automatica (Ronda $ronda)"
-                  git pull --rebase
-                  git push
+                  git push origin main
               } else {
                   Write-Host "Sin canciones nuevas en esta ronda."
               }
