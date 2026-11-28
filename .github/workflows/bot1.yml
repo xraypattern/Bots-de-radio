@@ -1,9 +1,7 @@
 name: Bot Radio Continuo
 
 on:
-  schedule:
-    - cron: '0 * * * *'
-  repository_dispatch:
+   repository_dispatch:
     types: [despertar-bot]
   workflow_dispatch:
 
