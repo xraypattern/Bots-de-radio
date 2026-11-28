@@ -10,6 +10,16 @@ $estaciones = @{
 }
 
 $dominio = "https://emisoras.com.mx"
+# Freno inteligente: si otro reloj guardó hace menos de 12 minutos, saltar turno
+$ultimoCommitUnix = git log -1 --format=%ct 2>$null
+if ($ultimoCommitUnix -match '^\d+$') {
+    $segundosPasados = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() - [long]$ultimoCommitUnix
+    if ($segundosPasados -lt 720) {
+        Write-Host "Freno activo: otro reloj capturó hace $([math]::Round($segundosPasados / 60, 1)) minutos. Saltando."
+        exit 0
+    }
+}
+
 $raiz = "."
 $bloqueadasArchivo = "$raiz/Bloqueadas.txt"
 
