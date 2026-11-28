@@ -1,5 +1,5 @@
 # =========================================================================
-# LISTA DE ESTACIONES (Agrega o quita el símbolo # para activar más radios)
+# LISTA DE ESTACIONES 
 # =========================================================================
 $estaciones = @{
     "Formula_Melodica" = "/formula-guadalajara/"
