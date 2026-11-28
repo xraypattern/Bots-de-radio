@@ -1,8 +1,9 @@
-name: Bot Radio Reloj 1 (00-20-40)
+name: Bot Radio Continuo
 
 on:
   schedule:
-    - cron: '0,20,40 * * * *'
+    # Arranca una vez cada hora
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 concurrency:
@@ -15,15 +16,34 @@ permissions:
 jobs:
   capturar-musica:
     runs-on: ubuntu-latest
+    timeout-minutes: 55
+
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v5
-      - name: Ejecutar bot de radio
+
+      - name: Ejecutar ciclo de captura (cada 15 min)
         shell: pwsh
-        run: ./capturar.ps1
-      - name: Guardar cambios en GitHub
         run: |
           git config user.name "Bot Radio"
-          git config user.email "bot@://github.com"
-          git add .
-          git diff --staged --quiet || (git commit -m "Actualizacion automatica" && (git push || echo "Ya actualizado por otro reloj"))
+          git config user.email "bot@users.noreply.github.com"
+
+          for ($ronda = 1; $ronda -le 4; $ronda++) {
+              Write-Host "=== Ronda $ronda de 4 ($(Get-Date -Format 'HH:mm:ss')) ==="
+              ./capturar.ps1
+              
+              git add .
+              git diff --staged --quiet
+              if ($LASTEXITCODE -ne 0) {
+                  git commit -m "Actualizacion automatica (Ronda $ronda)"
+                  git pull --rebase
+                  git push
+              } else {
+                  Write-Host "Sin canciones nuevas en esta ronda."
+              }
+
+              if ($ronda -lt 4) {
+                  Write-Host "Esperando 15 minutos exactos..."
+                  Start-Sleep -Seconds 900
+              }
+          }
