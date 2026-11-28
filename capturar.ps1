@@ -18,7 +18,7 @@ $bloqueadas = @(Get-Content $bloqueadasArchivo -Encoding UTF8)
 try { $tzMexico = [System.TimeZoneInfo]::FindSystemTimeZoneById("America/Mexico_City") } catch { $tzMexico = [System.TimeZoneInfo]::FindSystemTimeZoneById("Central Standard Time (Mexico)") }
 $ahora = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $tzMexico)
 
-$diaRadio = $ahora.AddHours(-6)
+$diaRadio = $ahora.AddHours(-6).AddMinutes(-15)
 $fecha = $diaRadio.ToString("yyyy-MM-dd")
 $fechaAyer = $diaRadio.AddDays(-1).ToString("yyyy-MM-dd")
 $hora = $ahora.ToString("HH:mm")
