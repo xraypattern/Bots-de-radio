@@ -3,9 +3,7 @@
 # =========================================================================
 $estaciones = @{
     "Formula_Melodica" = "/formula-guadalajara/"
-    # "Radio_Amor"       = "/amor-cdmx/"
-    # "Radio_Felicidad"  = "/felicidad/"
-    # "El_Fonografo"     = "/centro-690/"
+
 }
 
 $dominio = "https://emisoras.com.mx"
